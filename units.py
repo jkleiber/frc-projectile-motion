@@ -3,6 +3,8 @@
 import numpy as np
 
 INCHES_TO_METERS = 0.0254
+METERS_TO_FEET = 3.28084 
+FEET_TO_METERS = 1.0 / METERS_TO_FEET
 
 def linear_velocity_to_angular_velocity(linear_velocity: float, wheel_diameter: float):
     """

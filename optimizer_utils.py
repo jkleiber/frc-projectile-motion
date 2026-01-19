@@ -36,7 +36,7 @@ def objective_fn(opt_params, *args):
     dist_error = error[0]
     angle_error = error[1]
 
-    return 1000.0*dist_error**2 + 500.0*angle_error**2
+    return 1000.0*dist_error**2 + 1500.0*angle_error**2
 
 @dataclass 
 class Constraint:

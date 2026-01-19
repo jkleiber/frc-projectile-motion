@@ -19,7 +19,7 @@ from constants import (
 )
 from optimizer_utils import Constraint, ProjectileConstraints, TargetInfo, compute_error
 from projectile import compute_projectile_motion
-from units import linear_velocity_to_angular_velocity
+from units import linear_velocity_to_angular_velocity, INCHES_TO_METERS, METERS_TO_FEET
 
 
 def main():
@@ -74,8 +74,8 @@ def optimizer_loop(constraints: ProjectileConstraints, target_info: TargetInfo, 
 
         rpm = linear_velocity_to_angular_velocity(opt_v0, flywheel_diameter)
 
-        print(f"Distance {target_distance:.3f} m - optimal shot: rpm={rpm:.3f} RPM, theta={
-              np.degrees(opt_angle):.3f} deg --> Error: {error[0]:.4f} m, {np.degrees(error[1]):.3f} deg")
+        print(f"Distance {target_distance*METERS_TO_FEET:.3f} ft - optimal shot: rpm={rpm:.3f} RPM, theta={
+              np.degrees(opt_angle):.3f} deg --> Error: {error[0]/INCHES_TO_METERS:.4f} in, Arrival: {np.degrees(arrival_angle):.3f} deg")
 
 if __name__ == "__main__":
     main()
