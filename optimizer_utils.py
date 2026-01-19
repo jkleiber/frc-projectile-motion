@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Justin Kleiber
 
 import numpy as np
 
@@ -53,3 +54,4 @@ class ProjectileConstraints:
 class TargetInfo:
     delta_height: float
     arrival_angle: float
+    distance: float

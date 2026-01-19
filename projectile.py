@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Justin Kleiber
+
 import numpy as np
 
 from constants import (
