@@ -4,7 +4,7 @@ import numpy as np
 
 from dataclasses import dataclass
 
-from projectile import compute_projectile_motion
+from projectile_kinematics import compute_projectile_motion
 
 def compute_error(actual, target):
     actual_vec = np.array(actual)
@@ -22,13 +22,18 @@ def objective_fn(opt_params, *args):
         - 2: desired arrival angle
     """
     # Unpack params
-    v0 = opt_params[0]
+    flywheel_v0 = opt_params[0]
     launch_angle = opt_params[1]
 
     # Unpack *args
     delta_y = args[0]
     target_distance = args[1]
     target_arrival_angle = args[2]
+    projectile = args[3]
+    flywheel_diameter = args[4]
+
+    # The projectile has linear speed as a factor of the ratio between the flywheel diameter and the projectile diameter. 
+    v0 = flywheel_v0 * (flywheel_diameter / projectile.diameter)
 
     distance, tof, arrival_angle = compute_projectile_motion([v0, launch_angle], delta_y)
     error = compute_error([distance, arrival_angle], [target_distance, target_arrival_angle])
@@ -45,7 +50,7 @@ class Constraint:
 
 
 @dataclass
-class ProjectileConstraints:
+class ProjectileMotionConstraints:
     distance: Constraint
     launch_velocity: Constraint
     launch_angle: Constraint

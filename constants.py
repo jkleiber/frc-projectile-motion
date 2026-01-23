@@ -19,6 +19,10 @@ LAUNCH_HEIGHT = 24.0 * INCHES_TO_METERS # 24 inches
 MIN_LAUNCH_ANGLE = 1.0
 MAX_LAUNCH_ANGLE = 89.0
 
+# Projectile information
+# Diameter in inches
+PROJECTILE_DIAMETER = 6.0
+
 # Diameter of flywheel in inches
 FLYWHEEL_DIAMETER = 4.0
 

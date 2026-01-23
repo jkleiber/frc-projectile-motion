@@ -1,10 +1,10 @@
 # Copyright (c) 2026 Justin Kleiber
 
 from scipy.optimize import minimize, Bounds
-from optimizer_utils import objective_fn, ProjectileConstraints, TargetInfo
+from optimizer_utils import objective_fn, ProjectileMotionConstraints, TargetInfo
+from projectile import Projectile
 
-
-def scipy_optimize_main(constraints: ProjectileConstraints, target_info: TargetInfo):
+def scipy_optimize_main(constraints: ProjectileMotionConstraints, target_info: TargetInfo, projectile: Projectile, flywheel_diameter: float):
     v0 = (constraints.launch_velocity.max + constraints.launch_velocity.min) / 2.0
     launch_angle = (constraints.launch_angle.max + constraints.launch_angle.min) / 2.0
 
@@ -13,7 +13,7 @@ def scipy_optimize_main(constraints: ProjectileConstraints, target_info: TargetI
 
     x0 = [v0, launch_angle]
     result = minimize(objective_fn, x0, args=(target_info.delta_height, target_info.distance,
-                      target_info.arrival_angle), method='nelder-mead', bounds=bounds)
+                      target_info.arrival_angle, projectile, flywheel_diameter), method='nelder-mead', bounds=bounds)
 
     opt_v0 = result.x[0]
     opt_angle = result.x[1]

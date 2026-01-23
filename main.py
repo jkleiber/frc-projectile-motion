@@ -15,10 +15,12 @@ from constants import (
     MAX_LAUNCH_VELOCITY,
     MIN_LAUNCH_ANGLE,
     MAX_LAUNCH_ANGLE,
-    FLYWHEEL_DIAMETER
+    FLYWHEEL_DIAMETER,
+    PROJECTILE_DIAMETER
 )
-from optimizer_utils import Constraint, ProjectileConstraints, TargetInfo, compute_error
-from projectile import compute_projectile_motion
+from optimizer_utils import Constraint, ProjectileMotionConstraints, TargetInfo, compute_error
+from projectile import Projectile
+from projectile_kinematics import compute_projectile_motion
 from units import linear_velocity_to_angular_velocity, INCHES_TO_METERS, METERS_TO_FEET
 
 
@@ -35,10 +37,11 @@ def main():
     parser.add_argument("--min_launch_angle", type=float, default=MIN_LAUNCH_ANGLE)
     parser.add_argument("--max_launch_angle", type=float, default=MAX_LAUNCH_ANGLE)
     parser.add_argument("--flywheel_diameter", type=float, default=FLYWHEEL_DIAMETER)
+    parser.add_argument("--projectile_diameter", type=float, default=PROJECTILE_DIAMETER)
     args = parser.parse_args()
 
     # Build constraints for optimization
-    opt_constraints = ProjectileConstraints(distance=Constraint(min=args.min_distance, max=args.max_distance),
+    opt_constraints = ProjectileMotionConstraints(distance=Constraint(min=args.min_distance, max=args.max_distance),
                                             launch_velocity=Constraint(
                                                 min=args.min_launch_velocity, max=args.max_launch_velocity),
                                             launch_angle=Constraint(min=np.radians(args.min_launch_angle), max=np.radians(args.max_launch_angle)))
@@ -47,10 +50,12 @@ def main():
     delta_height = args.target_height - args.launch_height
     target_info = TargetInfo(delta_height=delta_height, arrival_angle=args.target_arrival_angle, distance=0.0)
 
-    optimizer_loop(opt_constraints, target_info, optimizer=args.optimizer, flywheel_diameter=args.flywheel_diameter)
+    projectile = Projectile(mass=0.0, diameter=args.projectile_diameter)
+
+    optimizer_loop(opt_constraints, target_info, optimizer=args.optimizer, projectile=projectile, flywheel_diameter=args.flywheel_diameter)
 
 
-def optimizer_loop(constraints: ProjectileConstraints, target_info: TargetInfo, optimizer='scipy', flywheel_diameter=FLYWHEEL_DIAMETER):
+def optimizer_loop(constraints: ProjectileMotionConstraints, target_info: TargetInfo, projectile: Projectile, optimizer='scipy', flywheel_diameter=FLYWHEEL_DIAMETER):
     min_distance = constraints.distance.min
     max_distance = constraints.distance.max
 
@@ -62,20 +67,22 @@ def optimizer_loop(constraints: ProjectileConstraints, target_info: TargetInfo, 
         target_info.distance = target_distance
         
         if optimizer == 'lmfit':
-            result = lmfit_main(constraints, target_info)
+            result = lmfit_main(constraints, target_info, projectile, flywheel_diameter)
         else:
-            result = scipy_optimize_main(constraints, target_info)
+            result = scipy_optimize_main(constraints, target_info, projectile, flywheel_diameter)
 
 
-        opt_v0 = result[0]
-        opt_angle = result[1]
-        distance, tof, arrival_angle = compute_projectile_motion([opt_v0, opt_angle], delta_y)
+        flywheel_v0 = result[0]
+        opt_launch_angle = result[1]
+        projectile_v0 = flywheel_v0 * (flywheel_diameter / projectile.diameter)
+        distance, tof, arrival_angle = compute_projectile_motion([projectile_v0, opt_launch_angle], delta_y)
         error = compute_error([distance, arrival_angle], [target_distance, target_arrival_angle])
 
-        rpm = linear_velocity_to_angular_velocity(opt_v0, flywheel_diameter)
+        # Use the flywheel v0 for converting to RPM because the projectile is at a different speed.
+        rpm = linear_velocity_to_angular_velocity(flywheel_v0, flywheel_diameter)
 
-        print(f"Distance {target_distance*METERS_TO_FEET:.3f} ft - optimal shot: rpm={rpm:.3f} RPM, theta={
-              np.degrees(opt_angle):.3f} deg --> Error: {error[0]/INCHES_TO_METERS:.4f} in, Arrival: {np.degrees(arrival_angle):.3f} deg")
+        print(f"Distance {target_distance*METERS_TO_FEET:.3f} ft - optimal shot: rps={rpm / 60.0:.3f} RPS, theta={
+              np.degrees(opt_launch_angle):.3f} deg --> Error: {error[0]/INCHES_TO_METERS:.4f} in, Arrival: {np.degrees(arrival_angle):.3f} deg")
 
 if __name__ == "__main__":
     main()
