@@ -20,7 +20,7 @@ MIN_LAUNCH_ANGLE = 1.0
 MAX_LAUNCH_ANGLE = 89.0
 
 # Projectile information
-PROJECTILE_DIAMETER = 6.0 #inches
+PROJECTILE_DIAMETER = (15.0 / 100.0) / INCHES_TO_METERS #inches
 PROJECTILE_MASS = 0.227 #kg
 
 # Diameter of flywheel in inches

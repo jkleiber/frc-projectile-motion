@@ -5,7 +5,7 @@ import numpy as np
 
 from projectile import Projectile
 from units import angular_velocity_to_linear_velocity
-from constants import GRAVITY, LAUNCH_HEIGHT, FLYWHEEL_DIAMETER, TARGET_HEIGHT
+from constants import GRAVITY, LAUNCH_HEIGHT, FLYWHEEL_DIAMETER, TARGET_HEIGHT, PROJECTILE_DIAMETER
 from units import INCHES_TO_METERS, METERS_TO_FEET, FEET_TO_METERS
 from performance import compute_error, evaluate_dynamics_performance, plot_projectile_trajectory
 
@@ -28,7 +28,8 @@ def projectile_eom(t, state, projectile: Projectile):
     air_density = 1.225 # kg/m^3
     projectile_diameter_meters = projectile.diameter * INCHES_TO_METERS
     cross_sectional_area = (np.pi * projectile_diameter_meters**2) / 4.0
-
+    projectile_radius_meters = projectile_diameter_meters / 2.0
+    projectile_inertia = (2.0 / 5.0)*projectile.mass*projectile_radius_meters**2
 
     total_velocity = np.sqrt(vx**2 + vz**2)
 
@@ -40,10 +41,13 @@ def projectile_eom(t, state, projectile: Projectile):
 
     Fx = (magnus_force + drag_force) * np.cos(angle_of_travel)
     Fz = (magnus_force + drag_force) * np.sin(angle_of_travel) + gravity_force 
+    torque = drag_force * projectile_radius_meters
 
     ax_dot = Fx / projectile.mass
     az_dot = Fz / projectile.mass
-    alpha_x = 0.0
+    
+    # this is a rough approximation for reducing spin rate
+    alpha_x = torque / projectile_inertia
 
     return np.array([
         vx, vz, ax_dot, az_dot, alpha_x
@@ -166,7 +170,7 @@ def projectile_main():
     params = [39.0, np.radians(66.0)]
     flywheel_diameter = FLYWHEEL_DIAMETER
 
-    projectile = Projectile(mass=0.227, diameter=6.0)
+    projectile = Projectile(mass=0.227, diameter=PROJECTILE_DIAMETER)
     
     target_info = TargetInfo(delta_height=0.0, arrival_angle=np.radians(-60), distance=target_distance, height=TARGET_HEIGHT)
     
