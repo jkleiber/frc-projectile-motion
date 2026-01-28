@@ -20,8 +20,8 @@ MIN_LAUNCH_ANGLE = 1.0
 MAX_LAUNCH_ANGLE = 89.0
 
 # Projectile information
-# Diameter in inches
-PROJECTILE_DIAMETER = 6.0
+PROJECTILE_DIAMETER = 6.0 #inches
+PROJECTILE_MASS = 0.227 #kg
 
 # Diameter of flywheel in inches
 FLYWHEEL_DIAMETER = 4.0
@@ -38,4 +38,4 @@ MAX_LAUNCH_DISTANCE = 29.590639 * FEET_TO_METERS
 
 # Target intercept constraints.
 SHALLOWEST_ARRIVAL_ANGLE = np.radians(-30.0)
-MAX_DISTANCE_ERROR = 47.0 * INCHES_TO_METERS
+MAX_DISTANCE_ERROR = 47.0 * 0.5 * INCHES_TO_METERS

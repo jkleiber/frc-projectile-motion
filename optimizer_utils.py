@@ -5,12 +5,7 @@ import numpy as np
 from dataclasses import dataclass
 
 from projectile_kinematics import compute_projectile_motion
-
-def compute_error(actual, target):
-    actual_vec = np.array(actual)
-    target_vec = np.array(target)
-
-    return target_vec - actual_vec
+from performance import compute_error
 
 def objective_fn(opt_params, *args):
     """
@@ -60,3 +55,4 @@ class TargetInfo:
     delta_height: float
     arrival_angle: float
     distance: float
+    height: float
