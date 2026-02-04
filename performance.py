@@ -8,6 +8,7 @@ from matplotlib import patches
 from units import METERS_TO_FEET, INCHES_TO_METERS, linear_velocity_to_angular_velocity
 from constants import MAX_DISTANCE_ERROR, TARGET_HEIGHT
 from projectile_kinematics import compute_projectile_motion
+from optimizer_types import TargetInfo
 
 
 def compute_error(actual, target):
@@ -18,26 +19,30 @@ def compute_error(actual, target):
 
 
 def evaluate_kinematics_performance(result, target_info, projectile, flywheel_diameter):
-    flywheel_v0 = result[0]
+    flywheel_rps = result[0]
     opt_launch_angle = result[1]
 
     delta_y = target_info.delta_height
     target_arrival_angle = target_info.arrival_angle
     target_distance = target_info.distance
 
-    projectile_v0 = flywheel_v0 * (flywheel_diameter / projectile.diameter)
+    projectile_v0 = flywheel_rps * (flywheel_diameter / projectile.diameter)
     distance, tof, arrival_angle = compute_projectile_motion([projectile_v0, opt_launch_angle], delta_y)
     error = compute_error([distance, arrival_angle], [target_distance, target_arrival_angle])
 
     # Use the flywheel v0 for converting to RPM because the projectile is at a different speed.
-    rpm = linear_velocity_to_angular_velocity(flywheel_v0, flywheel_diameter)
+    rpm = linear_velocity_to_angular_velocity(flywheel_rps, flywheel_diameter)
 
     print(f"Distance {target_distance*METERS_TO_FEET:.3f} ft - optimal shot: rps={rpm / 60.0:.3f} RPS, theta={
             np.degrees(opt_launch_angle):.3f} deg --> Error: {error[0]/INCHES_TO_METERS:.4f} in, Arrival: {np.degrees(arrival_angle):.3f} deg")
     
 
-def evaluate_dynamics_performance(trajectory, target_height, target_distance):
+def evaluate_dynamics_performance(trajectory, result, target_info: TargetInfo, verbose=False):
     has_intercept_1 = False
+
+    target_height = target_info.height
+    target_arrival_angle = target_info.arrival_angle
+    target_distance = target_info.distance
 
     # Evaluation criteria
     shot_distance = 0.0
@@ -56,7 +61,12 @@ def evaluate_dynamics_performance(trajectory, target_height, target_distance):
 
         prev_height = height
 
-    return shot_distance, arrival_angle
+    error = compute_error([shot_distance, arrival_angle], [target_distance, target_arrival_angle])
+
+    if verbose:
+        print(f"{target_distance*METERS_TO_FEET:.3f} ft --> rps: {result[0]} rps, {np.degrees(result[1])} deg  --> error:  {error[0] * METERS_TO_FEET} ft, {np.degrees(error[1])} deg")
+
+    return error
 
 
 

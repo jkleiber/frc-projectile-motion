@@ -5,11 +5,19 @@ import numpy as np
 
 from projectile import Projectile
 from units import angular_velocity_to_linear_velocity
-from constants import GRAVITY, LAUNCH_HEIGHT, FLYWHEEL_DIAMETER, TARGET_HEIGHT, PROJECTILE_DIAMETER
-from units import INCHES_TO_METERS, METERS_TO_FEET, FEET_TO_METERS
-from performance import compute_error, evaluate_dynamics_performance, plot_projectile_trajectory
+from constants import (
+    GRAVITY, 
+    LAUNCH_HEIGHT, 
+    FLYWHEEL_DIAMETER, 
+    TARGET_HEIGHT, 
+    PROJECTILE_DIAMETER,
+    FLYWHEEL_MIN_RPS,
+    FLYWHEEL_MAX_RPS
+)
+from units import INCHES_TO_METERS, FEET_TO_METERS
+from performance import evaluate_dynamics_performance, plot_projectile_trajectory
 
-from optimizer_utils import Constraint, ProjectileMotionConstraints, TargetInfo
+from optimizer_types import Constraint, ProjectileMotionConstraints, TargetInfo
 from scipy_optimizer import scipy_optimize_main
 
 def projectile_eom(t, state, projectile: Projectile):
@@ -45,7 +53,7 @@ def projectile_eom(t, state, projectile: Projectile):
 
     ax_dot = Fx / projectile.mass
     az_dot = Fz / projectile.mass
-    
+
     # this is a rough approximation for reducing spin rate
     alpha_x = torque / projectile_inertia
 
@@ -133,16 +141,17 @@ def dynamics_objective_fn(opt_params, *args):
     projectile = args[3]
     flywheel_diameter = args[4]
 
+    target_info = TargetInfo(delta_height=0.0, arrival_angle=target_arrival_angle, distance=target_distance, height=target_height)
+
     trajectory = compute_projectile_motion([flywheel_rps, launch_angle], projectile=projectile, flywheel_diameter=flywheel_diameter)
-    perf = evaluate_dynamics_performance(trajectory, target_height, target_distance)
-    error = compute_error([perf[0], perf[1]], [target_distance, target_arrival_angle])
+    perf = evaluate_dynamics_performance(trajectory, opt_params, target_info, verbose=False)
+   
+    dist_error = perf[0]
+    angle_error = perf[1]
 
-    dist_error = error[0]
-    angle_error = error[1]
+    print(f"{flywheel_rps:.3f} rps, {np.degrees(launch_angle):.3f} deg --> x error: {dist_error/FEET_TO_METERS}, angle error: {np.degrees(angle_error)}")
 
-    print(f"x error: {dist_error}, angle error: {angle_error}")
-
-    return 1000.0*dist_error**2 + 1500.0*angle_error**2
+    return 1000.0*dist_error**2# + 1500.0*angle_error**2
 
 
 
@@ -150,7 +159,7 @@ def dynamics_objective_fn(opt_params, *args):
 def projectile_opt_main(projectile: Projectile, target_info:TargetInfo, flywheel_diameter):
     constraints = ProjectileMotionConstraints(
         distance=Constraint(min=0.0, max=100.0),
-        launch_velocity=Constraint(min=10.0, max=60.0),
+        flywheel_rps=Constraint(min=FLYWHEEL_MIN_RPS, max=FLYWHEEL_MAX_RPS),
         launch_angle=Constraint(min=np.radians(0.0), max=np.radians(89.9)))
 
     result = scipy_optimize_main(constraints, target_info, projectile, flywheel_diameter, dynamics_objective_fn)
@@ -159,22 +168,22 @@ def projectile_opt_main(projectile: Projectile, target_info:TargetInfo, flywheel
 
 def projectile_run_main(params, projectile: Projectile, target_info:TargetInfo, flywheel_diameter):
     trajectory = compute_projectile_motion(params, projectile, flywheel_diameter)
-    perf = evaluate_dynamics_performance(trajectory, target_info.height, target_info.distance)
-    
-    print(f"rps: {params[0]} rps, {np.degrees(params[1])} deg  -->  {perf[0] * METERS_TO_FEET} ft, {np.degrees(perf[1])} deg")
+    _ = evaluate_dynamics_performance(trajectory, params, target_info, verbose=True)
     
     plot_projectile_trajectory(trajectory, target_info.distance)
 
 def projectile_main():
     target_distance = 15.0 * FEET_TO_METERS
-    params = [39.0, np.radians(66.0)]
+    # params = [39.0, np.radians(66.0)]
+    
+    params = [35.0, np.radians(55.0)]
     flywheel_diameter = FLYWHEEL_DIAMETER
 
     projectile = Projectile(mass=0.227, diameter=PROJECTILE_DIAMETER)
     
     target_info = TargetInfo(delta_height=0.0, arrival_angle=np.radians(-60), distance=target_distance, height=TARGET_HEIGHT)
     
-    is_optimizing = False
+    is_optimizing = True
     if is_optimizing:
         opt_params = projectile_opt_main(projectile, target_info, flywheel_diameter)
         projectile_run_main(opt_params, projectile, target_info, flywheel_diameter)

@@ -12,19 +12,18 @@ from constants import (
     TARGET_ARRIVAL_ANGLE,
     MIN_LAUNCH_DISTANCE,
     MAX_LAUNCH_DISTANCE,
-    MIN_LAUNCH_VELOCITY,
-    MAX_LAUNCH_VELOCITY,
+    FLYWHEEL_MIN_RPS,
+    FLYWHEEL_MAX_RPS,
     MIN_LAUNCH_ANGLE,
     MAX_LAUNCH_ANGLE,
     FLYWHEEL_DIAMETER,
     PROJECTILE_DIAMETER,
     PROJECTILE_MASS
 )
-from optimizer_utils import Constraint, ProjectileMotionConstraints, TargetInfo
+from optimizer_types import Constraint, ProjectileMotionConstraints, TargetInfo
 from projectile import Projectile
 import projectile_dynamics
-from performance import evaluate_kinematics_performance, evaluate_dynamics_performance, plot_projectile_trajectory
-from units import METERS_TO_FEET
+from performance import evaluate_kinematics_performance, evaluate_dynamics_performance
 
 def main():
     parser = argparse.ArgumentParser()
@@ -35,8 +34,8 @@ def main():
     parser.add_argument("--target_arrival_angle", type=float, default=TARGET_ARRIVAL_ANGLE)
     parser.add_argument("--min_distance", type=float, default=MIN_LAUNCH_DISTANCE)
     parser.add_argument("--max_distance", type=float, default=MAX_LAUNCH_DISTANCE)
-    parser.add_argument("--min_launch_velocity", type=float, default=MIN_LAUNCH_VELOCITY)
-    parser.add_argument("--max_launch_velocity", type=float, default=MAX_LAUNCH_VELOCITY)
+    parser.add_argument("--min_flywheel_rps", type=float, default=FLYWHEEL_MIN_RPS)
+    parser.add_argument("--max_flywheel_rps", type=float, default=FLYWHEEL_MAX_RPS)
     parser.add_argument("--min_launch_angle", type=float, default=MIN_LAUNCH_ANGLE)
     parser.add_argument("--max_launch_angle", type=float, default=MAX_LAUNCH_ANGLE)
     parser.add_argument("--flywheel_diameter", type=float, default=FLYWHEEL_DIAMETER)
@@ -46,8 +45,8 @@ def main():
 
     # Build constraints for optimization
     opt_constraints = ProjectileMotionConstraints(distance=Constraint(min=args.min_distance, max=args.max_distance),
-                                            launch_velocity=Constraint(
-                                                min=args.min_launch_velocity, max=args.max_launch_velocity),
+                                            flywheel_rps=Constraint(
+                                                min=args.min_flywheel_rps, max=args.max_flywheel_rps),
                                             launch_angle=Constraint(min=np.radians(args.min_launch_angle), max=np.radians(args.max_launch_angle)))
 
     # Get target information.
@@ -77,10 +76,8 @@ def optimizer_loop(constraints: ProjectileMotionConstraints, target_info: Target
         else:
             result = scipy_optimize_main(constraints, target_info, projectile, flywheel_diameter, projectile_dynamics.dynamics_objective_fn)
             trajectory = projectile_dynamics.compute_projectile_motion(result, projectile, flywheel_diameter)
-            perf = evaluate_dynamics_performance(trajectory, target_info.height, target_info.distance)
+            _ = evaluate_dynamics_performance(trajectory, result, target_info)
             
-            print(f"rps: {result[0]} rps, {np.degrees(result[1])} deg  -->  {perf[0] * METERS_TO_FEET} ft, {np.degrees(perf[1])} deg")
-            # plot_projectile_trajectory(trajectory, target_info.distance)
         
 
 if __name__ == "__main__":

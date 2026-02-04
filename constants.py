@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Justin Kleiber
 
 import numpy as np
-from units import INCHES_TO_METERS, FEET_TO_METERS, angular_velocity_to_linear_velocity
+from units import INCHES_TO_METERS, FEET_TO_METERS
 
 # Gravity in m/s^2
 GRAVITY = -9.8 
@@ -27,10 +27,8 @@ PROJECTILE_MASS = 0.227 #kg
 FLYWHEEL_DIAMETER = 4.0
 
 # Flywheel RPM constraints and related launch velocity constraint defaults
-FLYWHEEL_MIN_RPM = 100.0
-FLYWHEEL_MAX_RPM = 5000.0
-MIN_LAUNCH_VELOCITY = angular_velocity_to_linear_velocity(FLYWHEEL_MIN_RPM, FLYWHEEL_DIAMETER)
-MAX_LAUNCH_VELOCITY = angular_velocity_to_linear_velocity(FLYWHEEL_MAX_RPM, FLYWHEEL_DIAMETER)
+FLYWHEEL_MIN_RPS = 10.0
+FLYWHEEL_MAX_RPS = 100.0
 
 # Minimum launch distance in meters.
 MIN_LAUNCH_DISTANCE = (18.0 + 23.5) * INCHES_TO_METERS
